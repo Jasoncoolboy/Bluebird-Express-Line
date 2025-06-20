@@ -9,9 +9,7 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Truck className="h-6 w-6 text-white" />
-              </div>
+              <img src="/bluebirdlogo.png" alt="Bluebird Logo" className="h-12 w-12 object-contain" />
               <div>
                 <h3 className="text-xl font-bold">BLUEBIRD</h3>
                 <p className="text-sm text-blue-400">EXPRESS LINE</p>

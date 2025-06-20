@@ -22,9 +22,7 @@ const Header = () => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Truck className="h-8 w-8 text-white" />
-            </div>
+              <img src="/bluebirdlogo.png" alt="Bluebird Logo" className="h-12 w-12 object-contain" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">BLUEBIRD</h1>
               <p className="text-sm text-blue-600 font-medium">EXPRESS LINE</p>
