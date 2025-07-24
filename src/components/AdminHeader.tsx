@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, User, Truck } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminHeader = () => {
@@ -20,9 +20,7 @@ const AdminHeader = () => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/admin" className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Truck className="h-6 w-6 text-white" />
-            </div>
+            <img src="/bluebirdlogo.png" alt="Bluebird Logo" className="h-12 w-12 object-contain" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">BLUEBIRD ADMIN</h1>
               <p className="text-xs text-blue-600 font-medium">Management Portal</p>
