@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import ApiService from '../services/ApiService';
+import { useSocket } from './SocketContext';
 
 export interface ShipmentEvent {
   id: string;

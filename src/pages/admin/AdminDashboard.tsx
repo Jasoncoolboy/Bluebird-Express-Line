@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Package, TrendingUp, Clock, CheckCircle, Plus, Eye, BarChart3 } from 'lucide-react';
 import AdminHeader from '../../components/AdminHeader';
 import { useShipments } from '../../contexts/ShipmentContext';
+import { useSocket } from '../../contexts/SocketContext';
 
 const AdminDashboard = () => {
   const { shipments } = useShipments();
