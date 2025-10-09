@@ -7,8 +7,15 @@ import mysql from 'mysql2/promise';
 import authRoutes from './routes/auth.js';
 import shipmentRoutes from './routes/shipments.js';
 import testRoutes from './routes/test.js';
+import dbTestRoutes from './routes/db-test.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from src/.env
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,15 +26,30 @@ const io = new Server(httpServer, {
   }
 });
 
-// Create MySQL connection pool
+// Debug: Log environment variables (excluding sensitive data)
+console.log('Environment Variables Check:', {
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_USER: process.env.DB_USER,
+  DB_NAME: process.env.DB_NAME,
+  NODE_ENV: process.env.NODE_ENV
+});
+
+// Create MySQL connection pool with remote database settings
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'bluebird_DB',
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT) || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: 5,
+  queueLimit: 0,
+  connectTimeout: 60000, // Increased timeout for remote connection
+  ssl: {
+    rejectUnauthorized: false // Required for some remote database connections
+  },
+  debug: process.env.NODE_ENV === 'development'
 });
 
 // Middleware
@@ -38,6 +60,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/db', dbTestRoutes);
 
 // WebSocket connection
 io.on('connection', (socket) => {
