@@ -6,6 +6,13 @@ const router = express.Router();
 // Test remote database connection
 router.get('/test-connection', async (req, res) => {
   try {
+    console.log('Attempting database connection with config:', {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME
+    });
+    
     const connection = await pool.getConnection();
     
     // Test basic connection

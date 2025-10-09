@@ -46,9 +46,7 @@ const pool = mysql.createPool({
   connectionLimit: 5,
   queueLimit: 0,
   connectTimeout: 60000, // Increased timeout for remote connection
-  ssl: {
-    rejectUnauthorized: false // Required for some remote database connections
-  },
+  ssl: false, // Disable SSL for freesqldatabase.com
   debug: process.env.NODE_ENV === 'development'
 });
 
