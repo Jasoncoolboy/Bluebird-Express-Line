@@ -96,13 +96,11 @@ router.post('/login', async (req, res) => {
 
       res.json({
         success: true,
-        data: {
-          token,
-          user: {
-            id: user.id.toString(),  // Convert to string as frontend expects string
-            username: user.username,
-            role: user.role
-          }
+        token,
+        user: {
+          id: user.id.toString(),  // Convert to string as frontend expects string
+          username: user.username,
+          role: user.role
         }
       });
 
