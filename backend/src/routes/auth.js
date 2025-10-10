@@ -99,7 +99,7 @@ router.post('/login', async (req, res) => {
         data: {
           token,
           user: {
-            id: user.id,
+            id: user.id.toString(),  // Convert to string as frontend expects string
             username: user.username,
             role: user.role
           }
