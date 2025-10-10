@@ -46,7 +46,14 @@ class ApiService {
 
   // Auth endpoints
   static async login(credentials: LoginCredentials) {
-    return this.request('/auth/login', {
+    return this.request<{
+      token: string;
+      user: {
+        id: string;
+        username: string;
+        role: 'admin' | 'manager';
+      };
+    }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });

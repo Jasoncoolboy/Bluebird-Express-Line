@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, TrendingUp, Clock, CheckCircle, Plus, Eye, BarChart3 } from 'lucide-react';
+import { Package, TrendingUp, Clock, CheckCircle, Plus, Eye, BarChart3, AlertCircle } from 'lucide-react';
 import AdminHeader from '../../components/AdminHeader';
 import { useShipments } from '../../contexts/ShipmentContext';
 import { useSocket } from '../../contexts/SocketContext';
+import ShipmentChart from '../../components/ShipmentChart';
 
 const AdminDashboard = () => {
-  const { shipments } = useShipments();
+  const { shipments, loading, error } = useShipments();
+  const [chartData, setChartData] = useState(null);
+  const [changePercentages, setChangePercentages] = useState({
+    total: 0,
+    inTransit: 0,
+    delivered: 0,
+    processing: 0
+  });
 
   const stats = [
     {

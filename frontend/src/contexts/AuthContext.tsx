@@ -35,19 +35,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Mock authentication - in production, this would be an API call
-    const mockUsers = [
-      { id: '1', username: 'admin', password: 'admin123', role: 'admin' as const },
-      { id: '2', username: 'manager', password: 'manager123', role: 'manager' as const }
-    ];
-
-    const foundUser = mockUsers.find(u => u.username === username && u.password === password);
-    
-    if (foundUser) {
-      const userData = { id: foundUser.id, username: foundUser.username, role: foundUser.role };
-      setUser(userData);
-      localStorage.setItem('bluebird_admin_user', JSON.stringify(userData));
-      return true;
+    try {
+      const response = await ApiService.login({ username, password });
+      
+      if (response.success && response.data) {
+        const { token, user: userData } = response.data;
+        
+        // Store the token
+        localStorage.setItem('bluebird_token', token);
+        
+        // Store user data
+        const userInfo = {
+          id: userData.id,
+          username: userData.username,
+          role: userData.role as 'admin' | 'manager'
+        };
+        setUser(userInfo);
+        localStorage.setItem('bluebird_admin_user', JSON.stringify(userInfo));
+        return true;
     }
     
     return false;

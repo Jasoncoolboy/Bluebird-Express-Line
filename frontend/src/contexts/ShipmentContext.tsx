@@ -2,6 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import ApiService from '../services/ApiService';
 import { useSocket } from './SocketContext';
 
+interface ShipmentContextType {
+  shipments: Shipment[];
+  loading: boolean;
+  error: string | null;
+  fetchShipments: () => Promise<void>;
+  addShipment: (shipment: Shipment) => Promise<void>;
+  updateShipment: (id: string, shipment: Partial<Shipment>) => Promise<void>;
+  deleteShipment: (id: string) => Promise<void>;
+}
+
 export interface ShipmentEvent {
   id: string;
   date: string;

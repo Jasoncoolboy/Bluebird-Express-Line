@@ -26,6 +26,8 @@ const io = new Server(httpServer, {
   }
 });
 
+export default app; // Export for testing
+
 // Debug: Log environment variables (excluding sensitive data)
 console.log('Environment Variables Check:', {
   DB_HOST: process.env.DB_HOST,

@@ -18,16 +18,27 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    const success = await login(username, password);
     
-    if (!success) {
-      setError('Invalid username or password');
+    if (!username || !password) {
+      setError('Please enter both username and password');
+      return;
     }
-    
-    setIsLoading(false);
+
+    try {
+      setIsLoading(true);
+      setError('');
+
+      const success = await login(username, password);
+      
+      if (!success) {
+        setError('Invalid username or password');
+      }
+    } catch (err) {
+      setError('An error occurred during login. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
