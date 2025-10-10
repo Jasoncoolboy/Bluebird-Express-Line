@@ -1,6 +1,6 @@
 -- Create the database
--- CREATE DATABASE IF NOT EXISTS bluebird_express;
--- USE bluebird_express;
+-- CREATE DATABASE IF NOT EXISTS bluebird_DB;
+-- USE bluebird_DB;
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (

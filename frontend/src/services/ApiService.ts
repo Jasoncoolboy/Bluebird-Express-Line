@@ -46,7 +46,12 @@ class ApiService {
 
   // Auth endpoints
   static async login(credentials: LoginCredentials) {
-    return this.request<{
+    console.log('Login request with credentials:', {
+      username: credentials.username,
+      passwordLength: credentials.password.length
+    });
+
+    const response = await this.request<{
       token: string;
       user: {
         id: string;
@@ -57,6 +62,9 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
+
+    console.log('Login response:', { success: response.success, error: response.error });
+    return response;
   }
 
   // Shipment endpoints
