@@ -8,42 +8,85 @@ import ShipmentChart from '../../components/ShipmentChart';
 
 const AdminDashboard = () => {
   const { shipments, loading, error } = useShipments();
-  const [chartData, setChartData] = useState(null);
-  const [changePercentages, setChangePercentages] = useState({
-    total: 0,
-    inTransit: 0,
-    delivered: 0,
-    processing: 0
+  const [chartData, setChartData] = useState<{
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      borderColor: string;
+      backgroundColor: string;
+    }[];
+  }>({
+    labels: [],
+    datasets: [{
+      label: 'Daily Shipments',
+      data: [],
+      borderColor: 'rgb(53, 162, 235)',
+      backgroundColor: 'rgba(53, 162, 235, 0.5)',
+    }]
   });
+
+  useEffect(() => {
+    if (shipments.length > 0) {
+      // Calculate data for last 7 days
+      const last7Days = Array.from({length: 7}, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split('T')[0];
+      });
+
+      const shipmentsPerDay = last7Days.map(date => {
+        return shipments.filter(s => s.createdAt.startsWith(date)).length;
+      });
+
+      setChartData({
+        labels: last7Days.map(date => new Date(date).toLocaleDateString()),
+        datasets: [{
+          label: 'Daily Shipments',
+          data: shipmentsPerDay,
+          borderColor: 'rgb(53, 162, 235)',
+          backgroundColor: 'rgba(53, 162, 235, 0.5)',
+        }]
+      });
+    }
+  }, [shipments]);
+
+  const statusCounts = {
+    total: shipments.length,
+    inTransit: shipments.filter(s => s.status === 'In Transit').length,
+    delivered: shipments.filter(s => s.status === 'Delivered').length,
+    processing: shipments.filter(s => s.status === 'Processing').length,
+    exception: shipments.filter(s => s.status === 'Exception').length
+  };
 
   const stats = [
     {
       title: 'Total Shipments',
-      value: shipments.length,
+      value: statusCounts.total,
       icon: Package,
       color: 'bg-blue-500',
-      change: '+12%'
+      change: loading ? 'Loading...' : error ? 'Error' : `${statusCounts.total} total`
     },
     {
       title: 'In Transit',
-      value: shipments.filter(s => s.status === 'In Transit').length,
+      value: statusCounts.inTransit,
       icon: TrendingUp,
       color: 'bg-yellow-500',
-      change: '+5%'
+      change: loading ? 'Loading...' : error ? 'Error' : `${Math.round((statusCounts.inTransit / statusCounts.total) * 100)}%`
     },
     {
       title: 'Delivered',
-      value: shipments.filter(s => s.status === 'Delivered').length,
+      value: statusCounts.delivered,
       icon: CheckCircle,
       color: 'bg-green-500',
-      change: '+8%'
+      change: loading ? 'Loading...' : error ? 'Error' : `${Math.round((statusCounts.delivered / statusCounts.total) * 100)}%`
     },
     {
       title: 'Processing',
-      value: shipments.filter(s => s.status === 'Processing').length,
+      value: statusCounts.processing,
       icon: Clock,
       color: 'bg-orange-500',
-      change: '+3%'
+      change: loading ? 'Loading...' : error ? 'Error' : `${Math.round((statusCounts.processing / statusCounts.total) * 100)}%`
     }
   ];
 
@@ -93,6 +136,24 @@ const AdminDashboard = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Chart */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Shipment Activity</h2>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <p>Loading chart data...</p>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-red-500">Error loading chart data</p>
+            </div>
+          ) : (
+            <div className="h-64">
+              <ShipmentChart data={chartData} />
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
