@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ShipmentManagement from './pages/admin/ShipmentManagement';
 import CreateShipment from './pages/admin/CreateShipment';
 import EditShipment from './pages/admin/EditShipment';
+import Analytics from './pages/admin/Analytics';
 import { AuthProvider } from './contexts/AuthContext';
 import { ShipmentProvider } from './contexts/ShipmentContext';
 
@@ -51,6 +52,11 @@ function App() {
                 <Route path="/admin/shipments/edit/:id" element={
                   <ProtectedRoute>
                     <EditShipment />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/analytics" element={
+                  <ProtectedRoute>
+                    <Analytics />
                   </ProtectedRoute>
                 } />
               </Routes>

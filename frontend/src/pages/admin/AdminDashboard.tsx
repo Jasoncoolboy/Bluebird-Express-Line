@@ -150,15 +150,15 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Shipment Activity</h2>
           {loading ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-64 md:h-80 lg:h-96">
               <p>Loading chart data...</p>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-64 md:h-80 lg:h-96">
               <p className="text-red-500">Error loading chart data</p>
             </div>
           ) : (
-            <div className="h-64">
+            <div className="h-64 md:h-80 lg:h-96">
               <ShipmentChart data={chartData} />
             </div>
           )}
@@ -196,7 +196,10 @@ const AdminDashboard = () => {
             </div>
           </Link>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <Link
+            to="/admin/analytics"
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1"
+          >
             <div className="flex items-center space-x-4">
               <div className="bg-purple-100 p-3 rounded-lg">
                 <BarChart3 className="h-6 w-6 text-purple-600" />
@@ -206,7 +209,7 @@ const AdminDashboard = () => {
                 <p className="text-gray-600">View performance metrics</p>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Recent Shipments */}
