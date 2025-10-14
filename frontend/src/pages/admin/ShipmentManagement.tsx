@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Filter, Calendar } from 'lucide-react';
 import { AdminHeader } from '../../components';
 import { useShipments } from '../../contexts/ShipmentContext';
 
@@ -9,18 +9,43 @@ const ShipmentManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [serviceFilter, setServiceFilter] = useState('');
+  const [trackingFilter, setTrackingFilter] = useState('');
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
 
-  const filteredShipments = shipments.filter(shipment => {
-    const matchesSearch = 
-      shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      shipment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      shipment.destination.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !statusFilter || shipment.status === statusFilter;
-    const matchesService = !serviceFilter || shipment.service === serviceFilter;
-    
-    return matchesSearch && matchesStatus && matchesService;
-  });
+  // Format date helper function
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
+
+  const filteredAndSortedShipments = useMemo(() => {
+    let filtered = shipments.filter(shipment => {
+      const matchesSearch = 
+        shipment.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shipment.destination.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = !statusFilter || shipment.status === statusFilter;
+      const matchesService = !serviceFilter || shipment.service === serviceFilter;
+      const matchesTracking = !trackingFilter || shipment.trackingNumber.toLowerCase().includes(trackingFilter.toLowerCase());
+      const matchesDeliveryDate = !deliveryDateFilter || shipment.estimatedDelivery.includes(deliveryDateFilter);
+      
+      return matchesSearch && matchesStatus && matchesService && matchesTracking && matchesDeliveryDate;
+    });
+
+    // Sort by most recent first (using createdAt or updatedAt)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return dateB - dateA; // Most recent first
+    });
+  }, [shipments, searchTerm, statusFilter, serviceFilter, trackingFilter, deliveryDateFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -65,15 +90,37 @@ const ShipmentManagement = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search shipments..."
+                placeholder="Search all..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tracking #"
+                value={trackingFilter}
+                onChange={(e) => setTrackingFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="date"
+                placeholder="Delivery Date"
+                value={deliveryDateFilter}
+                onChange={(e) => setDeliveryDateFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
             
@@ -82,7 +129,7 @@ const ShipmentManagement = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-sm"
               >
                 <option value="">All Statuses</option>
                 <option value="Processing">Processing</option>
@@ -97,7 +144,7 @@ const ShipmentManagement = () => {
               <select
                 value={serviceFilter}
                 onChange={(e) => setServiceFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-sm"
               >
                 <option value="">All Services</option>
                 <option value="Air Freight">Air Freight</option>
@@ -106,8 +153,10 @@ const ShipmentManagement = () => {
               </select>
             </div>
             
-            <div className="text-sm text-gray-600 flex items-center">
-              Showing {filteredShipments.length} of {shipments.length} shipments
+            <div className="text-sm text-gray-600 flex items-center justify-center">
+              <span className="font-medium">{filteredAndSortedShipments.length}</span>
+              <span className="mx-1">/</span>
+              <span>{shipments.length}</span>
             </div>
           </div>
         </div>
@@ -142,7 +191,7 @@ const ShipmentManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredShipments.map((shipment) => (
+                {filteredAndSortedShipments.map((shipment) => (
                   <tr key={shipment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{shipment.trackingNumber}</div>
@@ -164,7 +213,7 @@ const ShipmentManagement = () => {
                       <div className="text-sm text-gray-500">→ {shipment.destination}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {shipment.estimatedDelivery}
+                      {formatDate(shipment.estimatedDelivery)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
@@ -190,7 +239,7 @@ const ShipmentManagement = () => {
             </table>
           </div>
           
-          {filteredShipments.length === 0 && (
+          {filteredAndSortedShipments.length === 0 && (
             <div className="text-center py-12">
               <Eye className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No shipments found</h3>
