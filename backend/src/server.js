@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import shipmentRoutes from './routes/shipments.js';
 import testRoutes from './routes/test.js';
 import dbTestRoutes from './routes/db-test.js';
+import contactRoutes from './routes/contact.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,14 +29,12 @@ const io = new Server(httpServer, {
 
 export default app; // Export for testing
 
-// Debug: Log environment variables (excluding sensitive data)
-console.log('Environment Variables Check:', {
-  DB_HOST: process.env.DB_HOST,
-  DB_PORT: process.env.DB_PORT,
-  DB_USER: process.env.DB_USER,
-  DB_NAME: process.env.DB_NAME,
-  NODE_ENV: process.env.NODE_ENV
-});
+// Only log the NODE_ENV in startup; avoid logging DB credentials in production
+if (process.env.NODE_ENV === 'development') {
+  console.log('Starting server in development mode');
+} else {
+  console.log(`Starting server in ${process.env.NODE_ENV || 'production'} mode`);
+}
 
 // Create MySQL connection pool with remote database settings
 const pool = mysql.createPool({
@@ -61,6 +60,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/db', dbTestRoutes);
+app.use('/api/contact', contactRoutes);
 
 // WebSocket connection
 io.on('connection', (socket) => {

@@ -11,6 +11,10 @@ const Contact = () => {
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -20,12 +24,78 @@ const Contact = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate form submission
-    setTimeout(() => {
+    setErrorMessage(null);
+    setLoading(true);
+    setUploadProgress(null);
+
+    try {
+      // client-side file size validation
+      if (attachment && attachment.size > MAX_FILE_BYTES) {
+        setErrorMessage('Attachment is too large. Maximum allowed size is 5 MB.');
+        setLoading(false);
+        return;
+      }
+
+      // Use XMLHttpRequest to provide upload progress
+      await new Promise<void>((resolve, reject) => {
+        const fd = new FormData();
+        fd.append('name', formData.name || '');
+        fd.append('email', formData.email || '');
+        fd.append('phone', formData.phone || '');
+        fd.append('company', formData.company || '');
+        fd.append('service', formData.service || '');
+        fd.append('message', formData.message || '');
+        if (attachment) fd.append('attachment', attachment, attachment.name);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/contact');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percent);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const json = JSON.parse(xhr.responseText);
+              if (json && json.success === false) {
+                reject(new Error(json.message || `Server error ${xhr.status}`));
+                return;
+              }
+            } catch {
+              // non-json success body is ok
+            }
+            resolve();
+          } else {
+            // Try to parse JSON error message
+            try {
+              const json = JSON.parse(xhr.responseText);
+              reject(new Error(json.message || `Failed to send message (${xhr.status})`));
+            } catch {
+              reject(new Error(`Failed to send message (${xhr.status})`));
+            }
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+
+        xhr.send(fd);
+      });
+
       setIsSubmitted(true);
-    }, 1000);
+      setLoading(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMessage(msg || 'Unexpected error');
+      setLoading(false);
+    }
   };
 
   const contactInfo = [
@@ -263,13 +333,50 @@ const Contact = () => {
                   ></textarea>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 flex items-center justify-center"
-                >
-                  <Send className="h-5 w-5 mr-2" />
-                  Send Message
-                </button>
+                <div>
+                  <label htmlFor="attachment" className="block text-sm font-medium text-gray-700 mb-2">
+                    Attachment (optional)
+                  </label>
+                  <input
+                    id="attachment"
+                    name="attachment"
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={(e) => {
+                      const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                      if (file && file.size > MAX_FILE_BYTES) {
+                        setErrorMessage('Attachment is too large. Maximum allowed size is 5 MB.');
+                        setAttachment(null);
+                        return;
+                      }
+                      setErrorMessage(null);
+                      setAttachment(file);
+                    }}
+                    className="w-full"
+                  />
+                  {attachment && (
+                    <p className="text-sm text-gray-600 mt-2">Selected file: {attachment.name} ({Math.round(attachment.size / 1024)} KB)</p>
+                  )}
+                  {uploadProgress !== null && (
+                    <div className="w-full bg-gray-200 rounded-full h-3 mt-3">
+                      <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  {errorMessage && (
+                    <p className="text-sm text-red-600 mb-3">{errorMessage}</p>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full ${loading ? 'opacity-70 cursor-wait' : 'hover:bg-blue-700'} bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 flex items-center justify-center`}
+                  >
+                    <Send className="h-5 w-5 mr-2" />
+                    {loading ? 'Sending...' : 'Send Message'}
+                  </button>
+                </div>
               </form>
             </div>
 

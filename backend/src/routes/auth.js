@@ -2,6 +2,20 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
+import nodemailer from 'nodemailer';
+
+// Simple in-memory rate limiter (IP -> { attempts, lastAttempt })
+const loginAttempts = new Map();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+// Optional transporter for alerts (configure SMTP in env)
+const alertTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+});
 
 const router = express.Router();
 
@@ -46,6 +60,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Rate limiter by IP
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = loginAttempts.get(ip) || { attempts: 0, lastAttempt: 0 };
+    if (record.lastAttempt && (now - record.lastAttempt) < WINDOW_MS && record.attempts >= MAX_ATTEMPTS) {
+      return res.status(429).json({ success: false, message: 'Too many login attempts. Try again later.' });
+    }
+
     // Get user from database
     let connection;
     let user;
@@ -64,6 +86,23 @@ router.post('/login', async (req, res) => {
       user = users[0];
 
       if (!user) {
+        // increment attempts
+        loginAttempts.set(ip, { attempts: (record.attempts || 0) + 1, lastAttempt: now });
+        if ((record.attempts || 0) + 1 >= MAX_ATTEMPTS) {
+          // Send alert email to admin if configured
+          try {
+            if (process.env.ALERT_EMAIL) {
+              alertTransporter.sendMail({
+                from: process.env.SMTP_FROM || 'no-reply@bluebird.com.my',
+                to: process.env.ALERT_EMAIL,
+                subject: 'Repeated failed login attempts detected',
+                text: `Multiple failed login attempts from IP ${ip} for username ${username}`
+              });
+            }
+          } catch (e) {
+            console.error('Failed to send alert email:', e);
+          }
+        }
         console.log('No user found with username:', username);
         return res.status(401).json({ 
           success: false, 
@@ -79,6 +118,22 @@ router.post('/login', async (req, res) => {
       console.log('Password match result:', isMatch);
 
       if (!isMatch) {
+        // increment attempts
+        loginAttempts.set(ip, { attempts: (record.attempts || 0) + 1, lastAttempt: now });
+        if ((record.attempts || 0) + 1 >= MAX_ATTEMPTS) {
+          try {
+            if (process.env.ALERT_EMAIL) {
+              alertTransporter.sendMail({
+                from: process.env.SMTP_FROM || 'no-reply@bluebird.com.my',
+                to: process.env.ALERT_EMAIL,
+                subject: 'Repeated failed login attempts detected',
+                text: `Multiple failed login attempts from IP ${ip} for username ${username}`
+              });
+            }
+          } catch (e) {
+            console.error('Failed to send alert email:', e);
+          }
+        }
         console.log('Password does not match');
         return res.status(401).json({ 
           success: false, 
@@ -86,6 +141,9 @@ router.post('/login', async (req, res) => {
         });
       }
       console.log('Password matches successfully');
+
+      // On successful login, reset attempts for this IP
+      loginAttempts.delete(ip);
 
       // Create JWT token
       const token = jwt.sign(
