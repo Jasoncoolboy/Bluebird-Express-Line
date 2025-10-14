@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    if (shipments.length > 0) {
+    if (!loading && shipments && shipments.length > 0) {
       // Calculate data for last 7 days
       const last7Days = Array.from({length: 7}, (_, i) => {
         const date = new Date();
@@ -36,7 +36,11 @@ const AdminDashboard = () => {
       });
 
       const shipmentsPerDay = last7Days.map(date => {
-        return shipments.filter(s => s.createdAt.startsWith(date)).length;
+        return shipments.filter(s => {
+          const created = s.createdAt ?? '';
+          const createdStr = typeof created === 'string' ? created : String(created || '');
+          return createdStr.startsWith(date);
+        }).length;
       });
 
       setChartData({
@@ -49,14 +53,14 @@ const AdminDashboard = () => {
         }]
       });
     }
-  }, [shipments]);
+  }, [shipments, loading]);
 
   const statusCounts = {
-    total: shipments.length,
-    inTransit: shipments.filter(s => s.status === 'In Transit').length,
-    delivered: shipments.filter(s => s.status === 'Delivered').length,
-    processing: shipments.filter(s => s.status === 'Processing').length,
-    exception: shipments.filter(s => s.status === 'Exception').length
+    total: shipments?.length || 0,
+    inTransit: shipments?.filter(s => s.status === 'In Transit')?.length || 0,
+    delivered: shipments?.filter(s => s.status === 'Delivered')?.length || 0,
+    processing: shipments?.filter(s => s.status === 'Processing')?.length || 0,
+    exception: shipments?.filter(s => s.status === 'Exception')?.length || 0
   };
 
   const stats = [
@@ -90,9 +94,14 @@ const AdminDashboard = () => {
     }
   ];
 
-  const recentShipments = shipments
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
+  // Ensure shipments is an array and avoid mutating it by creating a shallow copy
+  const recentShipments = Array.isArray(shipments)
+    ? [...shipments].sort((a, b) => {
+        const ta = Date.parse(String(a.updatedAt ?? a.createdAt ?? '')) || 0;
+        const tb = Date.parse(String(b.updatedAt ?? b.createdAt ?? '')) || 0;
+        return tb - ta;
+      }).slice(0, 5)
+    : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -216,7 +225,10 @@ const AdminDashboard = () => {
           </div>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            {(!Array.isArray(shipments) || shipments.length === 0) ? (
+              <div className="p-6 text-center text-gray-600">No shipments found. If you recently added data, try refreshing or check the API server.</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -267,6 +279,7 @@ const AdminDashboard = () => {
                 ))}
               </tbody>
             </table>
+              )}
           </div>
         </div>
       </div>

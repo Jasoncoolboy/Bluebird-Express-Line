@@ -7,27 +7,37 @@ const router = express.Router();
 // Get all shipments (protected route)
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    // First, get all shipments
     const [shipments] = await pool.execute(`
-      SELECT s.*, 
-             JSON_ARRAYAGG(
-               JSON_OBJECT(
-                 'id', se.id,
-                 'date', DATE_FORMAT(se.date, '%Y-%m-%d'),
-                 'time', TIME_FORMAT(se.time, '%H:%i'),
-                 'location', se.location,
-                 'status', se.status,
-                 'description', se.description
-               )
-             ) as events
-      FROM shipments s
-      LEFT JOIN shipment_events se ON s.id = se.shipment_id
-      GROUP BY s.id
-      ORDER BY s.created_at DESC
+      SELECT * FROM shipments ORDER BY created_at DESC
     `);
+
+    // Then, for each shipment, get its events
+    const shipmentsWithEvents = await Promise.all(
+      shipments.map(async (shipment) => {
+        const [events] = await pool.execute(`
+          SELECT 
+            id,
+            DATE_FORMAT(date, '%Y-%m-%d') as date,
+            TIME_FORMAT(time, '%H:%i') as time,
+            location,
+            status,
+            description
+          FROM shipment_events 
+          WHERE shipment_id = ?
+          ORDER BY date ASC, time ASC
+        `, [shipment.id]);
+
+        return {
+          ...shipment,
+          events: events || []
+        };
+      })
+    );
 
     res.json({ 
       success: true, 
-      data: shipments 
+      data: shipmentsWithEvents
     });
   } catch (error) {
     console.error('Error fetching shipments:', error);
@@ -41,34 +51,40 @@ router.get('/', authenticateToken, async (req, res) => {
 // Get shipment by tracking number (public route)
 router.get('/tracking/:number', async (req, res) => {
   try {
+    // First, get the shipment details
     const [shipments] = await pool.execute(`
-      SELECT s.*, 
-             JSON_ARRAYAGG(
-               JSON_OBJECT(
-                 'id', se.id,
-                 'date', DATE_FORMAT(se.date, '%Y-%m-%d'),
-                 'time', TIME_FORMAT(se.time, '%H:%i'),
-                 'location', se.location,
-                 'status', se.status,
-                 'description', se.description
-               )
-             ) as events
-      FROM shipments s
-      LEFT JOIN shipment_events se ON s.id = se.shipment_id
-      WHERE s.tracking_number = ?
-      GROUP BY s.id
+      SELECT * FROM shipments WHERE tracking_number = ?
     `, [req.params.number]);
 
-    if (!shipments[0]) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Shipment not found' 
+    if (shipments.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shipment not found'
       });
     }
 
-    res.json({ 
-      success: true, 
-      data: shipments[0] 
+    // Then get the events for this shipment
+    const [events] = await pool.execute(`
+      SELECT 
+        id,
+        DATE_FORMAT(date, '%Y-%m-%d') as date,
+        TIME_FORMAT(time, '%H:%i') as time,
+        location,
+        status,
+        description
+      FROM shipment_events 
+      WHERE shipment_id = ?
+      ORDER BY date ASC, time ASC
+    `, [shipments[0].id]);
+
+    const shipmentWithEvents = {
+      ...shipments[0],
+      events: events || []
+    };
+
+    res.json({
+      success: true,
+      data: shipmentWithEvents
     });
   } catch (error) {
     console.error('Error fetching shipment:', error);

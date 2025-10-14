@@ -63,25 +63,66 @@ export const ShipmentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLoading(true);
       setError(null);
       const response = await ApiService.getShipments();
-      if (response.success && response.data) {
-        setShipments(response.data);
+      console.debug('getShipments response:', response);
+      // Normalize response payload to an array of frontend Shipment objects
+      let payloadArray: any[] = [];
+      if (response.success) {
+        if (Array.isArray(response.data)) {
+          payloadArray = response.data as any[];
+        } else if (response.data && Array.isArray((response.data as any).data)) {
+          // handle nested wrapping (defensive)
+          payloadArray = (response.data as any).data;
+        }
+      }
+
+      if (Array.isArray(payloadArray)) {
+        const normalized: Shipment[] = payloadArray.map((r: any) => ({
+          id: r.id != null ? String(r.id) : '',
+          trackingNumber: r.tracking_number ?? r.trackingNumber ?? '',
+          status: r.status ?? 'Processing',
+          service: r.service ?? '',
+          origin: r.origin ?? '',
+          destination: r.destination ?? '',
+          estimatedDelivery: r.estimated_delivery ? String(r.estimated_delivery) : (r.estimatedDelivery ?? ''),
+          currentLocation: r.current_location ?? r.currentLocation ?? '',
+          customerName: r.customer_name ?? r.customerName ?? '',
+          customerEmail: r.customer_email ?? r.customerEmail ?? '',
+          customerPhone: r.customer_phone ?? r.customerPhone ?? '',
+          weight: r.weight ?? '',
+          dimensions: r.dimensions ?? '',
+          value: r.value != null ? String(r.value) : (r.value ?? ''),
+          events: Array.isArray(r.events) ? r.events.map((e: any) => ({
+            id: e.id != null ? String(e.id) : '',
+            date: e.date ?? e.date,
+            time: e.time ?? e.time,
+            location: e.location ?? '',
+            status: e.status ?? '',
+            description: e.description ?? ''
+          })) : [],
+          createdAt: r.created_at ?? r.createdAt ?? '',
+          updatedAt: r.updated_at ?? r.updatedAt ?? ''
+        }));
+
+        setShipments(normalized);
       } else {
+        setShipments([]);
         setError('Failed to fetch shipments');
       }
     } catch (error) {
       console.error('Error fetching shipments:', error);
+      setShipments([]);
       setError('An error occurred while fetching shipments');
     } finally {
       setLoading(false);
     }
   };
 
-  const addShipment = async (shipmentData: Omit<Shipment, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addShipment = async (shipmentData: Omit<Shipment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Shipment> => {
     try {
       const response = await ApiService.createShipment(shipmentData);
       if (response.success && response.data) {
         await fetchShipments(); // Refresh the list after creating
-        return response.data;
+        return response.data as Shipment;
       }
       throw new Error(response.error || 'Failed to create shipment');
     } catch (error) {
@@ -90,12 +131,12 @@ export const ShipmentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const updateShipment = async (id: string, shipmentData: Partial<Shipment>) => {
+  const updateShipment = async (id: string, shipmentData: Partial<Shipment>): Promise<Shipment> => {
     try {
       const response = await ApiService.updateShipment(id, shipmentData);
       if (response.success && response.data) {
         await fetchShipments(); // Refresh the list after updating
-        return response.data;
+        return response.data as Shipment;
       }
       throw new Error(response.error || 'Failed to update shipment');
     } catch (error) {

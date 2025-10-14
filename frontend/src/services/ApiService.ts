@@ -29,13 +29,22 @@ class ApiService {
         headers,
       });
 
-      const data = await response.json();
+      const parsed = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
+        // If the server returned an error payload, try to surface its message
+        const msg = (parsed && parsed.message) || 'Something went wrong';
+        throw new Error(msg);
       }
 
-      return { success: true, data };
+      // If the server already returns the ApiResponse shape { success, data, error }
+      // return it directly so callers get the server's `data` in response.data.
+      if (parsed && typeof parsed === 'object' && 'success' in parsed) {
+        return parsed as ApiResponse<T>;
+      }
+
+      // Fallback: server returned raw data, wrap it.
+      return { success: true, data: parsed };
     } catch (error) {
       return {
         success: false,
