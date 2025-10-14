@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LogOut, User } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 const AdminHeader = () => {
   const { user, logout } = useAuth();
@@ -64,4 +64,4 @@ const AdminHeader = () => {
   );
 };
 
-export default AdminHeader;
+export default AdminHeader;
