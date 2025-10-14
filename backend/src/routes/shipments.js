@@ -101,46 +101,81 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const {
-      tracking_number,
-      status,
-      service,
-      origin,
-      destination,
-      estimated_delivery,
-      current_location,
-      customer_name,
-      customer_email,
-      customer_phone,
-      weight,
-      dimensions,
-      value
-    } = req.body;
+      // Accept both snake_case (from some clients) and camelCase (from frontend)
+      const tracking_number = req.body.trackingNumber ?? req.body.tracking_number ?? null;
+      const status = req.body.status ?? req.body.shipmentStatus ?? null;
+      const service = req.body.service ?? null;
+      const origin = req.body.origin ?? null;
+      const destination = req.body.destination ?? null;
+      const estimated_delivery = req.body.estimatedDelivery ?? req.body.estimated_delivery ?? null;
+      const current_location = req.body.currentLocation ?? req.body.current_location ?? null;
+      const customer_name = req.body.customerName ?? req.body.customer_name ?? null;
+      const customer_email = req.body.customerEmail ?? req.body.customer_email ?? null;
+      const customer_phone = req.body.customerPhone ?? req.body.customer_phone ?? null;
+      const weight = req.body.weight ?? null;
+      const dimensions = req.body.dimensions ?? null;
+      const value = req.body.value ?? null;
 
-    // Insert shipment
-    const [result] = await connection.execute(`
-      INSERT INTO shipments (
-        tracking_number, status, service, origin, destination,
-        estimated_delivery, current_location, customer_name,
-        customer_email, customer_phone, weight, dimensions, value
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      tracking_number, status, service, origin, destination,
-      estimated_delivery, current_location, customer_name,
-      customer_email, customer_phone, weight, dimensions, value
-    ]);
+      // Insert shipment (use null for any missing values)
+      const [result] = await connection.execute(`
+        INSERT INTO shipments (
+          tracking_number, status, service, origin, destination,
+          estimated_delivery, current_location, customer_name,
+          customer_email, customer_phone, weight, dimensions, value
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        tracking_number ?? null,
+        status ?? null,
+        service ?? null,
+        origin ?? null,
+        destination ?? null,
+        estimated_delivery ?? null,
+        current_location ?? null,
+        customer_name ?? null,
+        customer_email ?? null,
+        customer_phone ?? null,
+        weight ?? null,
+        dimensions ?? null,
+        value ?? null
+      ]);
 
-    // Add initial event
-    await connection.execute(`
-      INSERT INTO shipment_events (
-        shipment_id, date, time, location, status, description
-      ) VALUES (?, CURDATE(), CURTIME(), ?, ?, ?)
-    `, [
-      result.insertId,
-      origin,
-      'Processing',
-      'Shipment created and processing initiated'
-    ]);
+      // If the client provided events array, insert them as shipment_events
+      const providedEvents = Array.isArray(req.body.events) ? req.body.events : null;
+      if (providedEvents && providedEvents.length > 0) {
+        for (const ev of providedEvents) {
+          // prefer provided fields, fallback to CURDATE/CURTIME when missing
+          const evDate = ev.date ?? null;
+          const evTime = ev.time ?? null;
+          const evLocation = ev.location ?? null;
+          const evStatus = ev.status ?? null;
+          const evDescription = ev.description ?? null;
+
+          await connection.execute(`
+            INSERT INTO shipment_events (
+              shipment_id, date, time, location, status, description
+            ) VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            result.insertId,
+            evDate,
+            evTime,
+            evLocation,
+            evStatus,
+            evDescription
+          ]);
+        }
+      } else {
+        // Add initial event if none provided
+        await connection.execute(`
+          INSERT INTO shipment_events (
+            shipment_id, date, time, location, status, description
+          ) VALUES (?, CURDATE(), CURTIME(), ?, ?, ?)
+        `, [
+          result.insertId,
+          origin,
+          'Processing',
+          'Shipment created and processing initiated'
+        ]);
+      }
 
     await connection.commit();
 
