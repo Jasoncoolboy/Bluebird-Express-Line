@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
+import { Header, Footer, ProtectedRoute } from './components';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import Tracking from './pages/Tracking';
@@ -14,7 +13,7 @@ import CreateShipment from './pages/admin/CreateShipment';
 import EditShipment from './pages/admin/EditShipment';
 import { AuthProvider } from './contexts/AuthContext';
 import { ShipmentProvider } from './contexts/ShipmentContext';
-import ProtectedRoute from './components/ProtectedRoute';
+
 
 function App() {
   return (
@@ -64,4 +63,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;

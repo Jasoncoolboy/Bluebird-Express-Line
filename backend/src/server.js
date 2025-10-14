@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import mysql from 'mysql2/promise';
+import pool from './config/database.js';
 import authRoutes from './routes/auth.js';
 import shipmentRoutes from './routes/shipments.js';
 import testRoutes from './routes/test.js';
@@ -36,20 +36,7 @@ if (process.env.NODE_ENV === 'development') {
   console.log(`Starting server in ${process.env.NODE_ENV || 'production'} mode`);
 }
 
-// Create MySQL connection pool with remote database settings
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 5,
-  queueLimit: 0,
-  connectTimeout: 60000, // Increased timeout for remote connection
-  ssl: false, // Disable SSL for freesqldatabase.com
-  debug: process.env.NODE_ENV === 'development'
-});
+// Database pool is now imported from config/database.js
 
 // Middleware
 app.use(cors());
@@ -91,4 +78,4 @@ async function startServer() {
 }
 
 // Start the server
-startServer();
+startServer();

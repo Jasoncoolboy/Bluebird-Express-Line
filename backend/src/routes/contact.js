@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import nodemailer from 'nodemailer';
+import emailService from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -33,37 +33,29 @@ router.post('/', upload.single('attachment'), async (req, res) => {
       }
     }
 
-    // Prepare email (note: this requires SMTP settings in env)
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: process.env.SMTP_USER ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      } : undefined
-    });
-
-    const mailOptions = {
-      from: process.env.SMTP_FROM || 'no-reply@bluebird.com.my',
-      to: process.env.CONTACT_EMAIL || 'enquiry@bluebird.com.my',
-      subject: `Website enquiry from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
-      attachments: file ? [ { filename: file.originalname, path: file.path } ] : []
-    };
-
-    // Send email (don't block on slow mail servers)
-    transporter.sendMail(mailOptions, (err, info) => {
-      // remove the temporary file after sending
-      if (file && fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-      if (err) {
+    // Send email using email service
+    emailService.sendContactEmail(
+      name,
+      email,
+      message,
+      file ? file.path : null,
+      file ? file.originalname : null
+    )
+      .then(() => {
+        // remove the temporary file after sending
+        if (file && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+        return res.json({ success: true, message: 'Enquiry sent' });
+      })
+      .catch((err) => {
+        // remove the temporary file on error
+        if (file && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
         console.error('Error sending contact email:', err);
         return res.status(500).json({ success: false, message: 'Failed to send email' });
-      }
-      return res.json({ success: true, message: 'Enquiry sent' });
-    });
+      });
 
   } catch (error) {
     console.error('Contact route error:', error);

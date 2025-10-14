@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, Package, Plus, Trash2, MapPin, Clock } from 'lucide-react';
-import AdminHeader from '../../components/AdminHeader';
+import { AdminHeader } from '../../components';
 import { useShipments, Shipment, ShipmentEvent } from '../../contexts/ShipmentContext';
 
 const EditShipment = () => {
@@ -527,4 +527,4 @@ const EditShipment = () => {
   );
 };
 
-export default EditShipment;
+export default EditShipment;

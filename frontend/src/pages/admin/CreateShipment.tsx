@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Package } from 'lucide-react';
-import AdminHeader from '../../components/AdminHeader';
+import { AdminHeader } from '../../components';
 import { useShipments, Shipment } from '../../contexts/ShipmentContext';
 
 const CreateShipment = () => {
@@ -361,4 +361,4 @@ const CreateShipment = () => {
   );
 };
 
-export default CreateShipment;
+export default CreateShipment;
