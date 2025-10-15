@@ -9,6 +9,7 @@ import shipmentRoutes from './routes/shipments.js';
 import testRoutes from './routes/test.js';
 import dbTestRoutes from './routes/db-test.js';
 import contactRoutes from './routes/contact.js';
+import captchaRoutes from './routes/captcha.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,7 @@ export function createApp() {
   app.use('/api/test', testRoutes);
   app.use('/api/db', dbTestRoutes);
   app.use('/api/contact', contactRoutes);
+  app.use('/api/captcha', captchaRoutes);
 
   return app;
 }
