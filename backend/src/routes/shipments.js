@@ -1,11 +1,13 @@
 import express from 'express';
 import pool from '../config/database.js';
 import { authenticateToken } from './auth.js';
+import { authorizeRoles } from './authz.js';
+import { body, param, validationResult } from 'express-validator';
 
 const router = express.Router();
 
 // Get all shipments (protected route)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, authorizeRoles('admin', 'manager'), async (req, res) => {
   try {
     // First, get all shipments
     const [shipments] = await pool.execute(`
@@ -49,7 +51,13 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get shipment by tracking number (public route)
-router.get('/tracking/:number', async (req, res) => {
+router.get('/tracking/:number',
+  param('number').isLength({ min: 6, max: 40 }).trim().escape(),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Invalid tracking number', errors: errors.array() });
+  }
   try {
     // First, get the shipment details
     const [shipments] = await pool.execute(`
@@ -96,7 +104,20 @@ router.get('/tracking/:number', async (req, res) => {
 });
 
 // Create new shipment (protected route)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',
+  authenticateToken,
+  authorizeRoles('admin', 'manager'),
+  body('trackingNumber').optional().isString().isLength({ min: 6, max: 40 }).trim().escape(),
+  body('status').optional().isString().isLength({ min: 2, max: 50 }).trim().escape(),
+  body('service').optional().isString().isLength({ min: 2, max: 50 }).trim().escape(),
+  body('origin').optional().isString().isLength({ min: 2, max: 100 }).trim().escape(),
+  body('destination').optional().isString().isLength({ min: 2, max: 100 }).trim().escape(),
+  body('estimatedDelivery').optional().isString().isLength({ min: 2, max: 50 }).trim(),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -196,7 +217,15 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Update shipment (protected route)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id',
+  authenticateToken,
+  authorizeRoles('admin', 'manager'),
+  param('id').isInt({ gt: 0 }),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -247,7 +276,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Delete shipment (protected route)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id',
+  authenticateToken,
+  authorizeRoles('admin'),
+  param('id').isInt({ gt: 0 }),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   try {
     const [result] = await pool.execute(
       'DELETE FROM shipments WHERE id = ?',
@@ -275,7 +312,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Add event to shipment (protected route)
-router.post('/:id/events', authenticateToken, async (req, res) => {
+router.post('/:id/events',
+  authenticateToken,
+  authorizeRoles('admin', 'manager'),
+  param('id').isInt({ gt: 0 }),
+  body('date').optional().isISO8601(),
+  body('time').optional().matches(/^\d{2}:\d{2}/),
+  body('location').optional().isString().isLength({ min: 2, max: 100 }).trim().escape(),
+  body('status').optional().isString().isLength({ min: 2, max: 50 }).trim().escape(),
+  body('description').optional().isString().isLength({ min: 2, max: 500 }).trim().escape(),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   try {
     const { date, time, location, status, description } = req.body;
     

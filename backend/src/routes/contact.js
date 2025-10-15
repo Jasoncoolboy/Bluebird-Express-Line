@@ -1,4 +1,5 @@
 import express from 'express';
+import { body, validationResult } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -13,7 +14,20 @@ const upload = multer({
 });
 
 // Basic contact form: accepts name, email, message and optional attachment (image/pdf)
-router.post('/', upload.single('attachment'), async (req, res) => {
+router.post('/',
+  upload.single('attachment'),
+  body('name').isString().isLength({ min: 2, max: 100 }).trim().escape(),
+  body('email').isEmail().normalizeEmail(),
+  body('message').isString().isLength({ min: 5, max: 2000 }).trim().escape(),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    // Remove uploaded file on validation error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   try {
     const { name, email, message } = req.body;
     const file = req.file;

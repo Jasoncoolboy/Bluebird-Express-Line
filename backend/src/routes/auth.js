@@ -1,4 +1,5 @@
 import express from 'express';
+import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
@@ -49,7 +50,14 @@ router.post('/setup-admin', async (req, res) => {
 });
 
 // Login route
-router.post('/login', async (req, res) => {
+router.post('/login',
+  body('username').isString().isLength({ min: 3, max: 50 }).trim().escape(),
+  body('password').isString().isLength({ min: 6, max: 200 }),
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
+  }
   try {
     const { username, password } = req.body;
     
@@ -199,6 +207,7 @@ export const authenticateToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+    // Optional: enforce admin-only endpoints using req.user.role downstream
     next();
   } catch (error) {
     res.status(401).json({ 
