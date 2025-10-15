@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Package, MapPin, Clock, CheckCircle, Truck, Plane, Ship } from 'lucide-react';
 import { useShipments } from '../contexts/ShipmentContext';
+import ApiService from '../services/ApiService';
 
 const Tracking = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -8,17 +9,54 @@ const Tracking = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { getShipmentByTrackingNumber } = useShipments();
 
-  const handleTrack = () => {
-    if (!trackingNumber.trim()) return;
-    
+  const handleTrack = async () => {
+    const input = trackingNumber.trim();
+
+    // If empty, try a default sample first (client), then attempt a public API fallback
+    if (!input) {
+      setIsLoading(true);
+      try {
+        // Try to show a sample from in-memory shipments first
+        const sample = getShipmentByTrackingNumber('BB123456789') || getShipmentByTrackingNumber('BB987654321');
+        if (sample) {
+          setTrackingResult(sample);
+          return;
+        }
+
+        // Fallback to public API sample if available (server should allow no-auth tracking by number)
+        const api = await ApiService.getShipmentByTracking('BB123456789');
+        if (api.success && api.data) {
+          setTrackingResult(api.data);
+        } else {
+          setTrackingResult(null);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      const result = getShipmentByTrackingNumber(trackingNumber);
-      setTrackingResult(result || null);
+    try {
+      // First try local cache (fast path)
+      const cached = getShipmentByTrackingNumber(input);
+      if (cached) {
+        setTrackingResult(cached);
+        return;
+      }
+
+      // Then try public API route (backend should not require admin auth for tracking-by-number)
+      const api = await ApiService.getShipmentByTracking(input);
+      if (api.success && api.data) {
+        setTrackingResult(api.data);
+      } else {
+        setTrackingResult(null);
+      }
+    } catch (e) {
+      setTrackingResult(null);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const getServiceIcon = (service: string) => {
