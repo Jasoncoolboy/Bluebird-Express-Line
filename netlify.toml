@@ -1,14 +1,25 @@
 [build]
-  base = "frontend"
-  command = "npm run build"
-  publish = "dist"
+  base = "."
+  command = "npm --prefix frontend ci && npm --prefix backend ci && npm --prefix frontend run build"
+  publish = "frontend/dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20.19.0"
 
 [functions]
-  directory = "../backend/netlify/functions"
+  directory = "backend/netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["backend/src/**", "backend/database/**"]
+  external_node_modules = [
+    "serverless-http",
+    "express",
+    "cors",
+    "dotenv",
+    "mysql2",
+    "express-validator",
+    "nodemailer",
+    "node-fetch"
+  ]
 
 [[redirects]]
   from = "/api/*"
