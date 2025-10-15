@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, TrendingUp, Clock, CheckCircle, Plus, Eye, BarChart3, AlertCircle } from 'lucide-react';
+import { Package, TrendingUp, Clock, CheckCircle, Plus, Eye, BarChart3 } from 'lucide-react';
 import { AdminHeader, ShipmentChart } from '../../components';
 import { useShipments } from '../../contexts/ShipmentContext';
-import { useSocket } from '../../contexts/SocketContext';
 
 const AdminDashboard = () => {
   const { shipments, loading, error } = useShipments();
@@ -289,4 +288,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboard;

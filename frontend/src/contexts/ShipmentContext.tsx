@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import ApiService from '../services/ApiService';
+import { useAuth } from './AuthContext';
 
 export interface ShipmentEvent {
   id: string;
@@ -35,6 +36,7 @@ interface ShipmentContextType {
   loading: boolean;
   error: string | null;
   fetchShipments: () => Promise<void>;
+  refreshShipments: () => Promise<void>;
   addShipment: (shipment: Omit<Shipment, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Shipment>;
   updateShipment: (id: string, shipment: Partial<Shipment>) => Promise<Shipment>;
   deleteShipment: (id: string) => Promise<void>;
@@ -55,10 +57,17 @@ export const useShipments = () => {
 
 export const ShipmentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
   const fetchShipments = async () => {
+    // Only fetch shipments if user is authenticated
+    if (!isAuthenticated) {
+      console.log('Skipping shipment fetch - user not authenticated');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -181,9 +190,21 @@ export const ShipmentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Manual refresh function for admin pages
+  const refreshShipments = async () => {
+    await fetchShipments();
+  };
+
+  // Only fetch shipments when user becomes authenticated
   useEffect(() => {
-    fetchShipments();
-  }, []);
+    if (isAuthenticated) {
+      fetchShipments();
+    } else {
+      // Clear shipments when user logs out
+      setShipments([]);
+      setError(null);
+    }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ShipmentContext.Provider
@@ -192,6 +213,7 @@ export const ShipmentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loading,
         error,
         fetchShipments,
+        refreshShipments,
         addShipment,
         updateShipment,
         deleteShipment,

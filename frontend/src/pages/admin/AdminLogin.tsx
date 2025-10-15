@@ -124,13 +124,13 @@ const AdminLogin = () => {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+          {/* <div className="mt-8 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Demo Credentials:</h3>
             <div className="text-sm text-gray-600 space-y-1">
               <p><strong>Admin:</strong> admin / admin123</p>
               <p><strong>Manager:</strong> manager / manager123</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
