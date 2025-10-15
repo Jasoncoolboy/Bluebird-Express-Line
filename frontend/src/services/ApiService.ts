@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+// Use env var in production; fall back to relative '/api' so you can
+// configure a reverse proxy if needed. Local dev can still override.
+const API_BASE_URL = (import.meta as any)?.env?.VITE_API_BASE_URL || '/api';
 
 export interface LoginCredentials {
   username: string;
