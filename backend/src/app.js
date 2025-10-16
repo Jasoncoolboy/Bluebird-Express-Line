@@ -11,7 +11,8 @@ import dbTestRoutes from './routes/db-test.js';
 import contactRoutes from './routes/contact.js';
 import captchaRoutes from './routes/captcha.js';
 
-const __filename = fileURLToPath(import.meta.url);
+// Handle serverless environment where import.meta.url might be undefined
+const __filename = import.meta.url ? fileURLToPath(import.meta.url) : process.cwd() + '/src/app.js';
 const __dirname = path.dirname(__filename);
 
 // Load environment variables
