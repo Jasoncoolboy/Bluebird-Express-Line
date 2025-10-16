@@ -7,9 +7,9 @@ import emailService from '../services/emailService.js';
 
 const router = express.Router();
 
-// Configure multer for small temporary storage
+// Configure multer for serverless environment (use /tmp directory)
 const upload = multer({
-  dest: path.join(process.cwd(), 'uploads/'),
+  dest: '/tmp/',
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
@@ -22,9 +22,13 @@ router.post('/',
   async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // Remove uploaded file on validation error
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    // Remove uploaded file on validation error (async)
+    if (req.file) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (err) {
+        console.warn('Failed to delete file:', err.message);
+      }
     }
     return res.status(400).json({ success: false, message: 'Validation error', errors: errors.array() });
   }
@@ -41,8 +45,12 @@ router.post('/',
       const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.pdf'];
       const ext = path.extname(file.originalname).toLowerCase();
       if (!allowed.includes(ext)) {
-        // remove file
-        fs.unlinkSync(file.path);
+        // remove file (async)
+        try {
+          await fs.promises.unlink(file.path);
+        } catch (err) {
+          console.warn('Failed to delete file:', err.message);
+        }
         return res.status(400).json({ success: false, message: 'Invalid file type' });
       }
     }
@@ -55,17 +63,25 @@ router.post('/',
       file ? file.path : null,
       file ? file.originalname : null
     )
-      .then(() => {
-        // remove the temporary file after sending
-        if (file && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
+      .then(async () => {
+        // remove the temporary file after sending (async)
+        if (file) {
+          try {
+            await fs.promises.unlink(file.path);
+          } catch (err) {
+            console.warn('Failed to delete file:', err.message);
+          }
         }
         return res.json({ success: true, message: 'Enquiry sent' });
       })
-      .catch((err) => {
-        // remove the temporary file on error
-        if (file && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
+      .catch(async (err) => {
+        // remove the temporary file on error (async)
+        if (file) {
+          try {
+            await fs.promises.unlink(file.path);
+          } catch (deleteErr) {
+            console.warn('Failed to delete file:', deleteErr.message);
+          }
         }
         console.error('Error sending contact email:', err);
         return res.status(500).json({ success: false, message: 'Failed to send email' });
