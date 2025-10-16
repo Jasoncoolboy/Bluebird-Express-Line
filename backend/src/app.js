@@ -15,8 +15,10 @@ import captchaRoutes from './routes/captcha.js';
 const __filename = import.meta.url ? fileURLToPath(import.meta.url) : process.cwd() + '/src/app.js';
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '.env') });
+// Load environment variables (only in development, serverless provides them directly)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.join(__dirname, '.env') });
+}
 
 export function createApp() {
   const app = express();

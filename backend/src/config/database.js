@@ -7,8 +7,10 @@ import { fileURLToPath } from 'url';
 const __filename = import.meta.url ? fileURLToPath(import.meta.url) : process.cwd() + '/src/config/database.js';
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from src/.env
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load environment variables (only in development, serverless provides them directly)
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.join(__dirname, '../.env') });
+}
 
 // Create connection options object
 const dbConfig = {
