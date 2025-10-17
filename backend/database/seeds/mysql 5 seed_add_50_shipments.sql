@@ -42,3 +42,32 @@ LIMIT 120; -- up to ~2-3 events per shipment
 
 SELECT COUNT(*) as total_shipments FROM shipments WHERE tracking_number LIKE 'BBL2025%';
 SELECT COUNT(*) as total_events FROM shipment_events WHERE shipment_id IN (SELECT id FROM shipments WHERE tracking_number LIKE 'BBL2025%');
+
+
+-- Insert 2–3 events per shipment (randomized, after created_at)
+INSERT INTO shipment_events (shipment_id, date, time, location, status, description)
+SELECT
+  s.id,
+  -- Generate random DATETIME between created_at and NOW()
+  DATE(
+    FROM_UNIXTIME(
+      FLOOR(
+        UNIX_TIMESTAMP(s.created_at)
+        + (UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(s.created_at)) * RAND()
+      )
+    )
+  ) AS date,
+  TIME(
+    FROM_UNIXTIME(
+      FLOOR(
+        UNIX_TIMESTAMP(s.created_at)
+        + (UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(s.created_at)) * RAND()
+      )
+    )
+  ) AS time,
+  ELT(FLOOR(1 + RAND() * 6), 'Origin Hub','Transit Hub','Destination Hub','Customs','Airport','Port') AS location,
+  ELT(FLOOR(1 + RAND() * 4), 'Picked Up','In Transit','Delivered','Processing') AS status,
+  CONCAT('Auto-generated event ', FLOOR(RAND() * 1000)) AS description
+FROM shipments s
+WHERE s.tracking_number LIKE 'BBL2025%'
+LIMIT 120;

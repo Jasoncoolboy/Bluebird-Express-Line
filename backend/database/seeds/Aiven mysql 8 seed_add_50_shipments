@@ -1,0 +1,41 @@
+-- 1) Create a temporary sequence table (1..50)
+DROP TEMPORARY TABLE IF EXISTS tmp_seq;
+CREATE TEMPORARY TABLE tmp_seq (n INT PRIMARY KEY);
+
+INSERT INTO tmp_seq (n)
+WITH RECURSIVE seq AS (
+  SELECT 1 AS n
+  UNION ALL
+  SELECT n + 1 FROM seq WHERE n < 50
+)
+SELECT n FROM seq;
+
+-- 2) Insert 50 shipments using the temporary numbers
+INSERT INTO shipments (
+  tracking_number, status, service, origin, destination,
+  estimated_delivery, current_location, customer_name, customer_email,
+  customer_phone, weight, dimensions, value, created_at, updated_at
+)
+SELECT
+  CONCAT('BBL2025', LPAD(t.n, 4, '0')) AS tracking_number,
+  ELT(FLOOR(1 + RAND() * 4), 'Processing', 'In Transit', 'Delivered', 'Exception') AS status,
+  ELT(FLOOR(1 + RAND() * 3), 'Air Freight', 'Sea Freight', 'Ground Shipping') AS service,
+  ELT(FLOOR(1 + RAND() * 6), 'New York, USA','Shanghai, China','Dubai, UAE',
+      'Rotterdam, Netherlands','Toronto, Canada','London, UK') AS origin,
+  ELT(FLOOR(1 + RAND() * 6), 'London, UK','Los Angeles, USA','Singapore',
+      'New York, USA','Montreal, Canada','Paris, France') AS destination,
+  DATE_ADD(CURDATE(), INTERVAL FLOOR(RAND() * 30) DAY) AS estimated_delivery,
+  ELT(FLOOR(1 + RAND() * 6), 'In Transit','At Hub','Departed',
+      'Arrived','At Customs','Out for Delivery') AS current_location,
+  CONCAT('Customer ', t.n) AS customer_name,
+  CONCAT('customer', t.n, '@example.com') AS customer_email,
+  CONCAT('+60', LPAD(FLOOR(100000000 + RAND() * 899999999), 9, '0')) AS customer_phone,
+  CONCAT(FLOOR(1 + RAND() * 500), ' kg') AS weight,
+  CONCAT(FLOOR(10 + RAND() * 200), 'x', FLOOR(10 + RAND() * 200), 'x', FLOOR(10 + RAND() * 200), ' cm') AS dimensions,
+  ROUND(RAND() * 20000 + 50, 2) AS value,
+  DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 7) DAY) AS created_at,  -- random within past week
+  DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 7) DAY) AS updated_at
+FROM tmp_seq t;
+
+
+
