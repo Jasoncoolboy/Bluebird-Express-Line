@@ -27,12 +27,21 @@ const dbConfig = {
   connectTimeout: 10000
 };
 
+// Add SSL configuration if CA certificate is provided
+if (process.env.DB_CA_CERT) {
+  dbConfig.ssl = {
+    ca: process.env.DB_CA_CERT,
+    rejectUnauthorized: true
+  };
+}
+
 // Debug: Log sanitized database configuration
 console.log('Database Configuration:', {
   host: dbConfig.host,
   port: dbConfig.port,
   user: dbConfig.user,
-  database: dbConfig.database
+  database: dbConfig.database,
+  sslEnabled: !!dbConfig.ssl
 });
 
 const pool = mysql.createPool(dbConfig);
